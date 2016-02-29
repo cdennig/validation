@@ -1,10 +1,12 @@
 import {inject} from 'aurelia-dependency-injection';
 import {customAttribute} from 'aurelia-templating';
+import {TaskQueue} from 'aurelia-framework';
 
 @customAttribute('validate')
-@inject(Element)
+@inject(Element, TaskQueue)
 export class ValidateCustomAttribute {
-  constructor(element) {
+  constructor(element, taskQueue) {
+    this.taskQueue = taskQueue; 
     this.element = element;
     this.processedValidation = null;
     this.viewStrategy = null;
@@ -15,8 +17,10 @@ export class ValidateCustomAttribute {
     }
     this.processedValidation = this.value;
     if (typeof (this.value) !== 'string') {
-      //binding to a validation instance
-      this.subscribeChangedHandlers(this.element);
+      this.taskQueue.queueMicroTask(() => {
+        //binding to a validation instance
+        this.subscribeChangedHandlers(this.element);
+      });
     }
     return; //this is just to tell the real validation instance (higher in the DOM) the exact property-path to bind to
   }

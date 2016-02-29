@@ -1,7 +1,7 @@
-System.register(['aurelia-dependency-injection', 'aurelia-templating'], function (_export) {
+System.register(['aurelia-dependency-injection', 'aurelia-templating', 'aurelia-framework'], function (_export) {
   'use strict';
 
-  var inject, customAttribute, ValidateCustomAttribute;
+  var inject, customAttribute, TaskQueue, ValidateCustomAttribute;
 
   function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
@@ -10,30 +10,37 @@ System.register(['aurelia-dependency-injection', 'aurelia-templating'], function
       inject = _aureliaDependencyInjection.inject;
     }, function (_aureliaTemplating) {
       customAttribute = _aureliaTemplating.customAttribute;
+    }, function (_aureliaFramework) {
+      TaskQueue = _aureliaFramework.TaskQueue;
     }],
     execute: function () {
       ValidateCustomAttribute = (function () {
-        function ValidateCustomAttribute(element) {
+        function ValidateCustomAttribute(element, taskQueue) {
           _classCallCheck(this, _ValidateCustomAttribute);
 
+          this.taskQueue = taskQueue;
           this.element = element;
           this.processedValidation = null;
           this.viewStrategy = null;
         }
 
         ValidateCustomAttribute.prototype.valueChanged = function valueChanged(newValue) {
+          var _this = this;
+
           if (this.value === null || this.value === undefined) {
             return;
           }
           this.processedValidation = this.value;
           if (typeof this.value !== 'string') {
-            this.subscribeChangedHandlers(this.element);
+            this.taskQueue.queueMicroTask(function () {
+              _this.subscribeChangedHandlers(_this.element);
+            });
           }
           return;
         };
 
         ValidateCustomAttribute.prototype.subscribeChangedHandlers = function subscribeChangedHandlers(currentElement) {
-          var _this = this;
+          var _this2 = this;
 
           var viewStrategy = this.value.config.getViewStrategy();
           var validationProperty = viewStrategy.getValidationProperty(this.value, currentElement);
@@ -42,7 +49,7 @@ System.register(['aurelia-dependency-injection', 'aurelia-templating'], function
           if (validationProperty !== null && validationProperty !== undefined) {
             this.viewStrategy.prepareElement(validationProperty, currentElement);
             validationProperty.onValidate(function (vp) {
-              _this.viewStrategy.updateElement(vp, currentElement);
+              _this2.viewStrategy.updateElement(vp, currentElement);
             });
           }
           for (var i = 0; i < children.length; i++) {
@@ -57,7 +64,7 @@ System.register(['aurelia-dependency-injection', 'aurelia-templating'], function
         };
 
         var _ValidateCustomAttribute = ValidateCustomAttribute;
-        ValidateCustomAttribute = inject(Element)(ValidateCustomAttribute) || ValidateCustomAttribute;
+        ValidateCustomAttribute = inject(Element, TaskQueue)(ValidateCustomAttribute) || ValidateCustomAttribute;
         ValidateCustomAttribute = customAttribute('validate')(ValidateCustomAttribute) || ValidateCustomAttribute;
         return ValidateCustomAttribute;
       })();
